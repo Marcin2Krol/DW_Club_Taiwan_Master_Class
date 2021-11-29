@@ -1,3 +1,8 @@
+## kod oparty jest na kodzie Vladimira ze Startera 1 ## 
+## moje zmiany zaznaczone są podwójnym hasztagiem po prawej stronie ##
+## skomentowane są tylko moje zmiany ##
+## komentarze do pozostałej części kodu znajdziecie w oryginalnym Starterze 1 Vladimira ##   
+
 import pandas as pd
 import numpy as np
 np.random.seed(0)
@@ -27,8 +32,8 @@ df_test = df_all[ df_all["target"].isnull() ].copy()
 X_train = df_train[num_feats].values
 y_train = df_train["target"].values
 
-# bardzo prosty resampling (późniejsze inne próby poradzenia sobie z niezrównoważeniem danych, takie jak #
-# np. łączenie over- i undersamplingu poprawiały score tylko lokalnie #                    ##
+# poniżej bardzo prosty resampling (późniejsze inne próby poradzenia sobie z niezrównoważeniem danych, 
+# takie jak np. łączenie over- i undersamplingu poprawiały score tylko lokalnie           
 
 oversampling = SMOTE()                                                                     ##
 X_train_over, y_train_over = oversampling.fit_sample(X_train.astype('float'), y_train)     ##
@@ -40,14 +45,9 @@ cv = StratifiedKFold(n_splits=3)
 model = xgb.XGBClassifier(max_depth=5, n_estimators=200, random_state=0)
 
 model.fit(X_train_over, y_train_over)
-eli5.show_weights(model, feature_names=num_feats, top=10)  #
+eli5.show_weights(model, feature_names=num_feats, top=10)
 
 X_test = df_test[num_feats].values
 df_test["target"] = model.predict(X_test).astype("int")
 
-df_test[ ["id", "target"] ].to_csv("../output/to_daje_score_54.csv", index=False)
-scores = cross_val_score(model, X_train_over, y_train_over, cv=cv, scoring="f1")
-np.mean(scores), np.std(scores)
-
-model.fit(X_train_over, y_train_over)
-eli5.show_weights(model, feature_names=num_feats, top=10)  #
+df_test[ ["id", "target"] ].to_csv("../output/to_daje_score_54.csv", index=False)         
