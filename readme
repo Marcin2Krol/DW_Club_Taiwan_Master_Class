@@ -1,0 +1,53 @@
+import pandas as pd
+import numpy as np
+np.random.seed(0)
+import xgboost as xgb
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+import eli5
+
+from imblearn.over_sampling import SMOTE ##
+from collections import Counter ##
+
+df_train = pd.read_hdf("../input/train_taiwan.h5")
+df_test = pd.read_hdf("../input/test_taiwan.h5")
+
+
+df_train["target"].value_counts()  # tu widać, że zmienna docelowa ('target') jest bardzo niezrównoważona
+
+df_all = pd.concat([df_train, df_test]).reset_index(drop=True)
+df_train.shape, df_test.shape, df_all.shape
+
+num_feats = df_all.select_dtypes("number").columns
+black_list = ["target"]
+num_feats = [x for x in num_feats if x not in black_list]
+
+df_train = df_all[ df_all["target"].notnull() ]
+df_test = df_all[ df_all["target"].isnull() ].copy()
+
+X_train = df_train[num_feats].values
+y_train = df_train["target"].values
+
+# bardzo prosty resampling (późniejsze inne próby poradzenia sobie z niezrównoważeniem danych, takie jak #
+# np. łączenie over- i undersamplingu poprawiały score tylko lokalnie #                    ##
+
+oversampling = SMOTE()                                                                     ##
+X_train_over, y_train_over = oversampling.fit_sample(X_train.astype('float'), y_train)     ##
+
+print("Rozkład y przed oversamplingiem:  " , Counter(y_train))                             ##
+print("Rozkład y po oversampligu :" , Counter(y_train_over))                               ##
+
+cv = StratifiedKFold(n_splits=3)
+model = xgb.XGBClassifier(max_depth=5, n_estimators=200, random_state=0)
+
+model.fit(X_train_over, y_train_over)
+eli5.show_weights(model, feature_names=num_feats, top=10)  #
+
+X_test = df_test[num_feats].values
+df_test["target"] = model.predict(X_test).astype("int")
+
+df_test[ ["id", "target"] ].to_csv("../output/to_daje_score_54.csv", index=False)
+scores = cross_val_score(model, X_train_over, y_train_over, cv=cv, scoring="f1")
+np.mean(scores), np.std(scores)
+
+model.fit(X_train_over, y_train_over)
+eli5.show_weights(model, feature_names=num_feats, top=10)  #
